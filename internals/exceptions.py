@@ -1,0 +1,2 @@
+class InvalidOrModifiedCookieError(Exception):
+    pass
