@@ -22,14 +22,14 @@ function submit_ws(form)
 </script>
 
 <style>
-    th, td {{border: 1px solid black; margin-left: auto; margin-right: auto;}}
+    th, td {{border: 1px solid black; text-align: center;}}
 </style>
 
 <script type="module">
 import * as Turbo from "https://cdn.skypack.dev/pin/@hotwired/turbo@v7.1.0-RBjb2wnkmosSQVoP27jT/min/@hotwired/turbo.js";
 Turbo.disconnectStreamSource(window.web_sock)
 window.web_sock = new WebSocket(`ws${{location.protocol.substring(4)}}//${{location.host}}/ws`);
-window.web_sock.addEventListener('close', function() {{document.getElementById("{self.div_names.new_account_form}").innerHTML = "DISCONNECTED, REFRESH TO CONTINUE";}});
+window.web_sock.addEventListener('close', function() {{document.getElementById("{self.div_names.new_account_form}").innerHTML = "DISCONNECTED, REFRESH TO CONTINUE"; window.location.reload()}});
 Turbo.connectStreamSource(window.web_sock);
 </script>
 

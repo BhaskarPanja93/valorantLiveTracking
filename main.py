@@ -1,5 +1,3 @@
-from json import loads
-
 from gevent import monkey
 monkey.patch_all()
 from gevent.pywsgi import WSGIServer
@@ -8,6 +6,8 @@ import urllib3
 from cryptography.fernet import Fernet
 from flask import Flask, request, redirect, make_response, render_template_string
 from flask_sock import Sock
+from json import loads
+from ping3 import ping
 
 from internals.exceptions import *
 from internals.flask_templates import *
@@ -26,14 +26,43 @@ mysqlPool = mysqlPool(dbName="val_tracker_db", user="root", password="SageHasBes
 added_accounts:dict[str,AccountAuth] = {}
 active_viewers:list[Viewer_class] = []
 wait_list_viewers = []
+rate_limit_queue = []
+rate_limit_wait_duration = 2
+rate_limited_at = 0
 last_request_sent = 0
 all_accounts_fetched  = False
 
-def rate_limiter():
+
+
+def rate_limit_checker(response:requests.api.request):
+    global rate_limited_at, rate_limit_wait_duration
+    print()
+    print(response.status_code, response.json())
+    if response.status_code == 429:
+        print("limit detected")
+        rate_limited_at = time()
+        rate_limit_wait_duration += 0.1
+        return False
+    return True
+
+
+def rate_limiter(bypass=False):
     global last_request_sent
-    while time() - last_request_sent < 1.5 or not all_accounts_fetched:
-        sleep(0.1)
-    last_request_sent = time()
+
+    if not bypass:
+        _id = randomGenerator.AlphaNumeric(5, 10)
+        rate_limit_queue.append(_id)
+        while time() - last_request_sent < rate_limit_wait_duration or not all_accounts_fetched or rate_limit_queue[0]!=_id or time()-rate_limited_at < 60:
+            sleep(0.1)
+        last_request_sent = time()
+        rate_limit_queue.pop(0)
+
+    while True:
+        try:
+            if type(ping("google.com", unit="ms")) == float:
+                break
+        except:
+            sleep(0.1)
 
 
 def generate_account_table(viewerObj:Viewer_class): ## remove argument by making a dummy button to activate the form
@@ -64,11 +93,10 @@ def generate_account_table(viewerObj:Viewer_class): ## remove argument by making
 def auto_add_accounts():
     global acc_identifier, all_accounts_fetched
     registered_accounts = mysqlPool.execute("SELECT * from account_details", False)
-
     for acc_tup in registered_accounts:
         playerID, username, password, email, extras = acc_tup
         acc_identifier+=1
-        acc = AccountAuth(str(acc_identifier), playerID, print, username, password, rate_limiter, divNames, turboMethods, active_viewers, email, extras)
+        acc = AccountAuth(str(acc_identifier), playerID, print, username, password, rate_limiter, rate_limit_checker, divNames, turboMethods, active_viewers, email, extras)
         added_accounts[acc.identifier] = acc
     all_accounts_fetched = True
 
@@ -204,7 +232,7 @@ def process_form(formSender:Viewer_class, form:dict):
             extras = form.get("EXTRAS").strip()
             acc_identifier += 1
             formSender.send_flask_data("CHECKING", divNames.new_account_form, turboMethods.update)
-            acc = AccountAuth(str(acc_identifier), "", print, username, password, rate_limiter, divNames, turboMethods, active_viewers, email, extras)
+            acc = AccountAuth(str(acc_identifier), "", print, username, password, rate_limiter, rate_limit_checker, divNames, turboMethods, active_viewers, email, extras)
             if acc.auth_account(fetch_details=True) is not None:
                 old = mysqlPool.execute(f"SELECT puuid from account_details where puuid=\"{acc.playerID}\"", False)
                 if not old:

@@ -53,5 +53,5 @@ headers = {
 auth_headers = {
     'X-Riot-ClientPlatform': "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9",
     'X-Riot-ClientVersion': version["riotClientVersion"],
-    "User-Agent": "ShooterGame/13 Windows/10.0.19043.1.256.64bit"
+    "User-Agent": "ShooterGame/13 Windows/10.0.19043.REPLACE_STRING.256.64bit"
 }
